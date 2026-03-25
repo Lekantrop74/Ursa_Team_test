@@ -1,75 +1,139 @@
 # Ursa Team Test
 
-Автоматическая генерация HTML-страниц с киберспортивными матчами с использованием API Pandascore.
+Генератор статического сайта с киберспортивными матчами на основе API Pandascore.
 
 ---
 
-## Описание
+## 📌 Описание
 
-Проект получает список матчей с Pandascore, сортирует их по времени, разделяет по дням (`yesterday`, `today`,
-`tomorrow`) и генерирует HTML-страницы с:
+Проект получает список матчей с Pandascore, обрабатывает их и генерирует **одну HTML-страницу** с интерактивным переключением:
 
-- SEO-полями (`title`, `description`, `keywords`)
-- Open Graph мета-тегами
-- Микроразметкой Schema.org для организации и событий (матчей)
-- Дизайном на голом HTML/CSS
+- Матчи за вчера
+- Матчи за сегодня
+- Матчи за завтра
+
+Переключение осуществляется с помощью кнопок без перезагрузки страницы.
 
 ---
 
-## Установка
+## ⚙️ Функциональность
 
-1. Склонировать репозиторий:
+- Получение данных через API Pandascore
+- Группировка матчей по дням (yesterday / today / tomorrow)
+- Генерация HTML через Jinja2
+- Переключение данных на странице (JS tabs)
+- SEO-оптимизация:
+  - `title`, `description`, `keywords`
+  - Open Graph мета-теги
+- Микроразметка Schema.org (Organization + Event)
+- Полностью статический сайт (без backend)
 
+---
+
+## 🚀 Демо
+
+Сайт доступен по ссылке:
+
+👉 https://lekantrop74.github.io/Ursa_Team_test/output/index.html
+
+---
+
+## 🛠 Установка
+
+```bash
 git clone https://github.com/Lekantrop74/Ursa_Team_test.git
 cd Ursa_Team_test
+```
 
-2. Установить зависимости (рекомендуется виртуальное окружение):
+Создать виртуальное окружение:
 
+```bash
 python -m venv venv
+```
 
-# Linux/macOS
+Активировать:
 
+Linux/macOS:
+```bash
 source venv/bin/activate
+```
 
-# Windows
-
+Windows:
+```bash
 venv\Scripts\activate
+```
 
+Установить зависимости:
+
+```bash
 pip install requests jinja2
-
-3. Создать папку `templates` и положить туда шаблон `page.html` (либо использовать уже готовый шаблон из проекта).
+```
 
 ---
 
-## Использование
+## ▶️ Использование
 
-1. В файле `main.py` укажите свой API_KEY Pandascore:
+1. Указать API-ключ в `main.py`:
 
+```python
 API_KEY = "ваш_API_KEY"
+```
 
 2. Запустить скрипт:
 
+```bash
 python main.py
+```
 
 3. Результат:
 
-- HTML-страницы будут созданы в папках `output/yesterday`, `output/today`, `output/tomorrow`
-- Каждая страница будет содержать список матчей с форматированной датой и микроразметкой Schema.org
+- Генерируется файл:
+  ```
+  output/index.html
+  ```
+- Это готовая страница сайта
 
 ---
 
-## Структура проекта
+## 📁 Структура проекта
 
 ```
-esports-matches/
-├─ main.py             # Главный скрипт
+Ursa_Team_test/
+├─ main.py
 ├─ templates/
-│  └─ page.html        # Шаблон HTML для генерации страниц
-├─ output/             # Сгенерированные страницы
-│  ├─ yesterday/
-│  ├─ today/
-│  └─ tomorrow/
+│  └─ page.html
+├─ output/
+│  └─ index.html
 └─ README.md
 ```
 
 ---
+
+## 💡 Особенности
+
+- Не используется сервер — сайт полностью статический
+- Подходит для деплоя на GitHub Pages
+- Данные обновляются при каждом запуске скрипта
+
+---
+
+## 📦 Технологии
+
+- Python
+- requests
+- Jinja2
+- HTML / CSS / JavaScript
+
+---
+
+## 📄 API
+
+Используется API Pandascore:
+
+https://www.pandascore.co/
+
+---
+
+## 👤 Автор
+
+Виктор Королёв
