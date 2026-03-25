@@ -1,99 +1,129 @@
 import requests
 from datetime import datetime, timedelta, timezone
 from jinja2 import Environment, FileSystemLoader
-import os, json
+import os
+import json
 
 API_KEY = "JwqkBRVniS_eEONTSZwUW6J6_BYKYho0QN_HNl1qTx6_zJ3dpMA"
 
-# ------------------- Шаблон Jinja2 -------------------
 env = Environment(loader=FileSystemLoader("templates"))
 template = env.get_template("page.html")
 
 
-# ------------------- Получение матчей -------------------
+def get_date_range():
+    """Возвращает даты: вчера, сегодня, завтра."""
+    today = datetime.now(timezone.utc).date()
+    return today - timedelta(1), today, today + timedelta(1)
+
+
 def get_matches():
-    """Получает список киберспортивных матчей через API Pandascore."""
+    """Запрашивает матчи из API Pandascore за диапазон (вчера–завтра)."""
+    yesterday, today, tomorrow = get_date_range()
+
     url = "https://api.pandascore.co/matches"
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    params = {"range[begin_at]": "2026-03-23,2026-03-25"}
-    return requests.get(url, headers=headers, params=params).json()
+    params = {
+        "range[begin_at]": f"{yesterday.isoformat()},{tomorrow.isoformat()}"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Ошибка при запросе API: {e}")
+        return []
 
 
-# ------------------- Подготовка матчей -------------------
+def format_match(match):
+    """Преобразует матч в удобный для отображения формат."""
+    begin = match.get("begin_at")
+    if not begin:
+        return None
+
+    dt = datetime.fromisoformat(begin.replace("Z", "+00:00"))
+
+    # Название матча
+    if match.get("opponents") and len(match["opponents"]) >= 2:
+        name = f"{match['opponents'][0]['opponent']['name']} vs {match['opponents'][1]['opponent']['name']}"
+    else:
+        name = match.get("name", "Unknown match")
+
+    return {
+        "name_display": name,
+        "begin_at": begin,
+        "begin_at_display": dt.strftime("%d.%m.%Y %H:%M"),
+        "date": dt.date()
+    }
+
+
 def prepare_matches(matches):
-    """
-    Преобразует даты, формирует имя для отображения, сортирует и разделяет по дням.
-    Возвращает словарь с ключами: 'yesterday', 'today', 'tomorrow'.
-    """
-    today = datetime.now(timezone.utc).date()
-    yesterday, tomorrow = today - timedelta(1), today + timedelta(1)
-    result = {"yesterday": [], "today": [], "tomorrow": []}
+    """Группирует матчи по дням: вчера, сегодня, завтра."""
+    yesterday, today, tomorrow = get_date_range()
 
-    # Сортируем матчи по времени начала
-    for m in sorted(matches, key=lambda x: x.get("begin_at", "")):
-        if not (begin := m.get("begin_at")):
+    grouped = {"yesterday": [], "today": [], "tomorrow": []}
+
+    for raw_match in sorted(matches, key=lambda x: x.get("begin_at") or ""):
+        match = format_match(raw_match)
+        if not match:
             continue
 
-        # Преобразуем дату ISO в datetime и в красивый формат
-        dt = datetime.fromisoformat(begin.replace("Z", "+00:00"))
-        m["_dt"] = dt
-        m["begin_at_display"] = dt.strftime("%d.%m.%Y %H:%M")
+        if match["date"] == yesterday:
+            grouped["yesterday"].append(match)
+        elif match["date"] == today:
+            grouped["today"].append(match)
+        elif match["date"] == tomorrow:
+            grouped["tomorrow"].append(match)
 
-        # Формируем отображаемое имя матча
-        if m.get("opponents") and len(m["opponents"]) >= 2:
-            m["name_display"] = f"{m['opponents'][0]['opponent']['name']} vs {m['opponents'][1]['opponent']['name']}"
-        else:
-            m["name_display"] = m.get("name", "Unknown match")
-
-        # Разделяем по дням
-        day_key = {yesterday: "yesterday", today: "today", tomorrow: "tomorrow"}.get(dt.date())
-        if day_key:
-            result[day_key].append(m)
-
-    return result
+    return grouped
 
 
-# ------------------- Генерация Schema.org -------------------
 def generate_schema(matches):
-    """Создаёт микроразметку Schema.org для организации с матчами как события."""
-    events = []
-    for m in matches:
-        events.append({
-            "@type": "Event",
-            "name": m["name_display"],
-            "startDate": m["begin_at"],  # ISO
-            "eventStatus": "https://schema.org/EventScheduled",
-            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
-        })
-    schema = {
+    """Генерирует JSON-LD микроразметку Schema.org."""
+    return json.dumps({
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "Esports Matches",
         "url": "https://your-site.example.com",
-        "hasEvent": events
-    }
-    return json.dumps(schema)
+        "hasEvent": [
+            {
+                "@type": "Event",
+                "name": m["name_display"],
+                "startDate": m["begin_at"],
+                "eventStatus": "https://schema.org/EventScheduled",
+                "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+            }
+            for m in matches
+        ]
+    })
 
 
-# ------------------- Генерация HTML -------------------
-def generate_page(name, matches):
-    """Генерирует HTML-страницу с матчами и микроразметкой событий."""
-    os.makedirs(f"output/{name}", exist_ok=True)
-    html = template.render(
-        title=f"Матчи {name}",
-        description=f"Киберспортивные матчи {name}",
-        matches=matches,
-        schema=generate_schema(matches)
+def generate_page(grouped):
+    """Генерирует HTML страницу с матчами."""
+    os.makedirs("output", exist_ok=True)
+
+    all_matches = (
+        grouped["yesterday"] +
+        grouped["today"] +
+        grouped["tomorrow"]
     )
-    with open(f"output/{name}/index.html", "w", encoding="utf-8") as f:
+
+    html = template.render(
+        title="Киберспортивные матчи",
+        description="Матчи вчера, сегодня и завтра",
+        grouped=grouped,
+        schema=generate_schema(all_matches)
+    )
+
+    with open("output/index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
 
-# ------------------- Главная функция -------------------
 def main():
-    grouped = prepare_matches(get_matches())
-    for key, matches in grouped.items():
-        generate_page(key, matches)
+    """Точка входа: получает данные и генерирует страницу."""
+    matches = get_matches()
+    grouped = prepare_matches(matches)
+    generate_page(grouped)
 
 
 if __name__ == "__main__":

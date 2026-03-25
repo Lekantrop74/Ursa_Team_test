@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <title>{{ title }}</title>
     <meta name="description" content="{{ description }}">
-    <meta name="keywords" content="esports, киберспорт, матчи, турнир, {{ title }}">
+    <meta name="keywords" content="esports, киберспорт, матчи">
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{ title }}">
     <meta property="og:description" content="{{ description }}">
-    <meta property="og:type" content="website">
 
     <!-- Schema.org -->
     <script type="application/ld+json">
@@ -17,29 +16,103 @@
     </script>
 
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }
-        h1 { text-align: center; margin-bottom: 40px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .match { background: #1e293b; padding: 15px 20px; margin-bottom: 15px; border-radius: 10px; transition: 0.2s; }
-        .match:hover { background: #334155; }
-        .match h2 { margin: 0; font-size: 18px; color: #38bdf8; }
-        .match p { margin: 5px 0 0; font-size: 14px; color: #94a3b8; }
-        .empty { text-align: center; margin-top: 50px; color: #94a3b8; }
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .tabs {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .tabs button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            background: #38bdf8;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .tab {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .match {
+            background: #1e293b;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+        }
+
+        .empty {
+            text-align: center;
+            margin-top: 30px;
+        }
     </style>
 </head>
+
 <body>
-    <h1>{{ title }}</h1>
-    <div class="container">
-        {% if matches %}
-            {% for match in matches %}
-                <div class="match">
-                    <h2>{{ match.name_display }}</h2>
-                    <p>{{ match.begin_at_display }}</p>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p class="empty">Нет матчей</p>
-        {% endif %}
-    </div>
+
+<h1>{{ title }}</h1>
+
+<div class="tabs">
+    <button onclick="showTab('yesterday')">Вчера</button>
+    <button onclick="showTab('today')">Сегодня</button>
+    <button onclick="showTab('tomorrow')">Завтра</button>
+</div>
+
+<div id="yesterday" class="tab">
+    {% for match in grouped.yesterday %}
+        <div class="match">
+            <h3>{{ match.name_display }}</h3>
+            <p>{{ match.begin_at_display }}</p>
+        </div>
+    {% else %}
+        <p class="empty">Нет матчей</p>
+    {% endfor %}
+</div>
+
+<div id="today" class="tab">
+    {% for match in grouped.today %}
+        <div class="match">
+            <h3>{{ match.name_display }}</h3>
+            <p>{{ match.begin_at_display }}</p>
+        </div>
+    {% else %}
+        <p class="empty">Нет матчей</p>
+    {% endfor %}
+</div>
+
+<div id="tomorrow" class="tab">
+    {% for match in grouped.tomorrow %}
+        <div class="match">
+            <h3>{{ match.name_display }}</h3>
+            <p>{{ match.begin_at_display }}</p>
+        </div>
+    {% else %}
+        <p class="empty">Нет матчей</p>
+    {% endfor %}
+</div>
+
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab').forEach(tab => tab.style.display = 'none');
+    document.getElementById(tabName).style.display = 'block';
+}
+
+showTab('today');
+</script>
+
 </body>
 </html>
